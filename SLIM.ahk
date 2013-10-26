@@ -5,10 +5,10 @@
 	#NoEnv ; Assume variables are not environment variables
 	#SingleInstance Off ; Allow multiple concurrent instances
 	FileEncoding UTF-8 ; Assume text files are UTF-8 encoded
-	gm_buttoncount = 9
-	slim_reg = HKLM\SOFTWARE\AHK Scripts\VxE\SLIM
+	gm_buttoncount = 12
+	gm_baction_vis := 4
+	slim_reg = SOFTWARE\AHK Scripts\VxE\SLIM
 	manifests := []
-	gm_baction_vis := 3
 
 ; Command line switches
 	commands := {-quit:[0,cmd_the_end],-get:[2,cmd_download]}
@@ -16,6 +16,8 @@
 	If ( argc := %FALSE% )
 		GoSub cmd_handler
 
+; TODO: create a manifest for the currently installed version of AHK
+; TODO: create a manifest for the current version of SLIM
 ; TODO: Load manifest database
 settimer cmd_the_end, -9000
 
@@ -88,16 +90,11 @@ settimer cmd_the_end, -9000
 	Gui Show, HIDE, SLIM
 	Loop 3
 		Sleep % 2 - A_Index
-	gm_m := RegRead( slim_reg "\windowPos", "Center,Center,691,427,0" )
-	gm_w := "xywh"
-	Loop Parse, gm_w
-	{
-		pos := InStr( gm_m ",", "," )
-		gm_%A_LoopField% := SubStr( gm_m, 1, pos - 1 )
-		gm_m := SubStr( gm_m, pos + 1 )
-	}
-	WinMove,,,,, gm_w, gm_h
-	Gui Show, % !gm_m ? "X" gm_x " Y" gm_y : "MAXIMIZE"
+	RegRead, gm_win_0, HKLM, % slim_reg, windowPos
+	gm_win_0 := ErrorLevel ? "Center,Center,691,427,0" : gm_win_0
+	StringSplit, gm_win_, gm_win_0, `,
+	WinMove,,,,, gm_win_3, gm_win_4
+	Gui, Show, % !gm_win_5 ? "X" gm_win_1 " Y" gm_win_2 : "MAXIMIZE"
 
 	
 settimer cmd_the_end, off
@@ -113,7 +110,7 @@ main_gui_size( W, H ) {
 	, bros := ( gm_baction_vis + 5 ) // 6
 	, ylow := H - gm_mh - (( gm_baction_vis + 5 ) // 6) * ( gm_mh + gm_bactionh )
 	, yhi := gm_tabh + gm_mh + gm_mh
-	, yreq, rreq, hreq, ybtn, wbtn, cbtn, xbtn, cbtl := 0
+	, yreq, rreq, hreq
 
 	rreq := Round( ( ylow - yhi - 4 * gm_lineh - gm_tauh - 6 * gm_mv ) / ( sqrt(5) * gm_lvrowh ) )
 	hreq := rreq * gm_lvrowh + gm_lvh
@@ -149,10 +146,6 @@ main_gui_size( W, H ) {
 }
 
 btn_pos( I, N, K, W, Mh, H, Dy ) {
-; returns "X_ Y_ W_" for the button position, given the
-; returns the row number and row length for I from a grid with N members where each row is approximately
-; equal in length and not greater than K
-
 	rs := 0
 	lb := N / ( rc := ( 1 + N // ( K + 1 ) ) )
 	while rs < I
@@ -188,6 +181,12 @@ Return
 
 main_gui_escape:
 main_gui_close:
+	Gui 1:+LastFound
+	WinGet, gm_win_5, MINMAX
+	If !gm_win_5
+		WinGetPos, gm_win_1, gm_win_2, gm_win_3, gm_win_4
+;	RegWrite, REG_SZ, HKLM, % slim_reg, windowPos, %gm_win_1%`,%gm_win_2%`,%gm_win_3%`,%gm_win_4%`,%gm_win_5%
+
 cmd_the_end:
 	Exitapp
 Return
