@@ -1,47 +1,73 @@
 ; Script Library Install Manager
 
 ; Script Directives and Initialization
+settimer cmd_the_end, -9000
 
 	#NoEnv ; Assume variables are not environment variables
 	#SingleInstance Off ; Allow multiple concurrent instances
 	FileEncoding UTF-8 ; Assume text files are UTF-8 encoded
 	gm_buttoncount = 12
 	gm_baction_vis := 4
+	version = 0.00.01
 	slim_reg = SOFTWARE\AHK Scripts\VxE\SLIM
-	manifests := []
+	Global packages := []
+	Global slim_man := {"Name":"AHK-Script-Slim","Version":"0.0.0.0"}
+
+;+>	If !InStr( FileExist( A_ScriptDir "\SLIM Data"), "D" )
+;+>		FileCreateDir %A_ScriptDir%\SLIM Data
+
+; Load all stored manifests
+	SetWorkingDir %A_ScriptDir%\SLIM Data
+	Loop *.slim, 0, 0
+		load_manifest( A_LoopFileName )
+
+; Download script manifest
+	If ( slim_man.Version = "0.0.0.0" )
+	{
+		0++
+		%0% = -get
+		0++
+		%0% = https://raw.github.com/Jim-VxE/AHK-Script-SLIM/master/slim.slim
+		0++
+		%0% = %A_ScriptDir%\SLIM Data\slim.slim
+	}
 
 ; Command line switches
-	commands := {-quit:[0,cmd_the_end],-get:[2,cmd_download]}
+	commands := {"-quit":[0,"cmd_the_end"],"-get":[2,"cmd_download"]}
 
 	If ( argc := %FALSE% )
 		GoSub cmd_handler
 
-; TODO: create a manifest for the currently installed version of AHK
-; TODO: create a manifest for the current version of SLIM
-; TODO: Load manifest database
-settimer cmd_the_end, -9000
+; Load the configuration files for SLIM
+	If ( slim_man.Version = "0.0.0.0" )
+	{
+		MsgBox, 16, SLIM - Fatal Error, SLIM's configuration file is missing or corrupt.
+		Exitapp
+	}
+
+; Build the gui menus and tabs
+	gm_domain := "AutoHotkey" ; future use - segregate packages by domain
+
+	gm_tab := "`n"
+	for k, v in packages
+		If !InStr( gm_tab, "`n" v.Category "`n" )
+			gm_tab .= v.Category "`n"
+	gm_tab := SubStr( gm_tab, 2, -1 )
+	Sort gm_tab
 
 ; Build the GUIs
-	Gui 3:Default ; control sizing dummy gui
-	Gui +LastFound
-	Gui Font, S9, Verdana
-	Gui Font,, Lucida Sans Unicode
-	Gui Add, Edit
-	ControlGetPos,,,, gm_eh, Edit1
-	Gui Font, S11
-	Gui Add, Text,, Filter:
-	ControlGetPos,,, gs_tfilterw,, Static1
 
 	Gui 1:Default ; main gui
-	Gui +LastFound +Resize +Labelmain_gui_ +HWNDmain_gui_hwnd
+	Gui +LastFound +Resize +Disabled +OwnDialogs +Labelmain_gui_ +HWNDmain_gui_hwnd +Delimiter`n
 	Gui Font, S15, Verdana
 	Gui Font,, Lucida Sans Unicode
 	Gui Margin, % gm_mh := 3, % gm_mv := 3
 
-	Gui Add, Tab2, xm ym -Wrap vgm_tab, Example|Libraries
+	Gui Add, Tab2, xm ym -Wrap vgm_tab, % gm_tab
 	Gui Tab
 	Gui Font, S11
-	Gui Add, Text, xm h%gm_eh% 0x200 vgm_tfilter, Filter:
+	Gui Add, Text, xm 0x200 vgm_tfilter, Filter:
+	ControlGetPos,,, gs_tfilterw,, Static1
 	Gui Add, Edit, vgm_efilter
 	ControlGetPos,,,, gm_lineh, Edit1
 	GuiControl MoveDraw, gm_tfilter, H%gm_lineh%
@@ -96,8 +122,15 @@ settimer cmd_the_end, -9000
 	WinMove,,,,, gm_win_3, gm_win_4
 	Gui, Show, % !gm_win_5 ? "X" gm_win_1 " Y" gm_win_2 : "MAXIMIZE"
 
-	
+	RegRead, lang_pref, HKLM, % slim_reg, languagePreference
+	for k, v in slim_man
+
+	Tooltip % 
+
 settimer cmd_the_end, off
+
+	Gui -Disabled
+	s =
 Return
 
 main_gui_size:
@@ -185,14 +218,22 @@ main_gui_close:
 	WinGet, gm_win_5, MINMAX
 	If !gm_win_5
 		WinGetPos, gm_win_1, gm_win_2, gm_win_3, gm_win_4
-;	RegWrite, REG_SZ, HKLM, % slim_reg, windowPos, %gm_win_1%`,%gm_win_2%`,%gm_win_3%`,%gm_win_4%`,%gm_win_5%
+;+>	RegWrite, REG_SZ, HKLM, % slim_reg, windowPos, %gm_win_1%`,%gm_win_2%`,%gm_win_3%`,%gm_win_4%`,%gm_win_5%
 
 cmd_the_end:
 	Exitapp
 Return
 
 load_manifest( fpath ) {
+	FileRead s, %fpath%
 
+	If IsObject( s := json_toobj( s ) ) && v.HasKey( "MANIFEST" )
+		for i, v in s.MANIFEST.PACKAGES
+		{
+			packages.Insert( v )
+			If ( slim_man.Name = v.Name ) && 0 < cmp_ver( slim_man.Version, v.Version )
+				slim_man := v
+		}
 }
 
 #include incl.ahk

@@ -1,17 +1,24 @@
 {	"MANIFEST":
-	{	"PACKAGES":
+	{	"Content":
+		{	"Encoding":"UTF-8"
+		,	"SHA-256":""
+		,	"Summary":"PACKAGES"
+		,	"Type":"text/plain"
+		}
+	,	"PACKAGES":
 		[
 			{	"Name":"AHK-Script-Slim"
 			,	"Authors":[{"VxE":""}]
-			,	"Version":"0.00.01"
-			,	"Category":"Applications"
+			,	"Version":"0.01.01"
+			,	"Domain":"AutoHotkey"
+			,	"Category":"Software"
 			,	"Info":
 				[
 					{	"Language":"EN-US"
 					,	"Title":"Script Library Install Manager"
 					,	"Pitch":"(none)"
 					,	"Description":"(none)"
-					,	"License":"(none)"
+					,	"License":"Copyright \u00A9 2013 VxE. All rights reserved.\r\n\r\nRedistribution and use in source and binary forms, with or without modification, in whole or in part, are\r\npermitted provided that the following condition is met:\r\n\r\n1. Redistributions must retain the above copyright notice, this list of conditions and the following disclaimer.\r\n\r\nTHIS SOFTWARE IS PROVIDED BY VxE \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL VxE BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 					,	"GuiText":
 						{	"filter":"Filter:"
 						,	"pgk_lv_hdr":"Title|Version|Author|Status|Checked|Manifest Date"
@@ -22,31 +29,39 @@
 						,	"goweb":"Visit Website"
 						,	"uninstall":"Uninstall"
 						,	"purge":"Purge"
+						,	"Classes":"Classes"
+						,	"Functions":"Functions"
+						,	"Software":"Software"
+						,	"ttm_loading":"Loading Data..."
 						}
 					}
 				]
 			,	"Actions":
 				[
-					{	"cmd":"install"
+					{	"buttonText":"%Package.Info.GuiText.install"
+					,	"cmd":"install"
 					,	"enabled":1
 					}
-				,	{	"cmd":"update"
+				,	{	"buttonText":"%Package.Info.GuiText.update"
+					,	"cmd":"update"
 					,	"enabled":1
 					}
-				,	{	"cmd":"goweb"
+				,	{	"buttonText":"%Package.Info.GuiText.goweb"
+					,	"cmd":"goweb"
 					,	"enabled":1
 					}
-				,	{	"cmd":"uninstall"
+				,	{	"buttonText":"%Package.Info.GuiText.uninstall"
+					,	"cmd":"uninstall"
 					,	"enabled":1
 					}
-				,	{	"cmd":"purge"
+				,	{	"buttonText":"%Package.Info.GuiText.purge"
+					,	"cmd":"purge"
 					,	"enabled":1
 					}
 				]
 			,	"Files":
-				{	"SLIM.ahk":{"Source":".\"}
-				,	"slim.slim":{"Source":".\"}
-				,	"SLIM data":{"Source":".\"}
+				{	"SLIM.ahk":{"Source":".\","SHA-256":""}
+				,	"slim.slim":{"Source":"https://raw.github.com/Jim-VxE/AHK-Script-SLIM/master/slim.slim"}
 				}
 			}
 		]
