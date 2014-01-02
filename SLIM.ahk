@@ -84,8 +84,8 @@ main_gui_build: ; Build the GUIs
 		Gui Destroy
 
 	Gui +LastFound +Resize +Disabled +OwnDialogs +Labelmain_gui_ +HWNDmain_gui_hwnd +Delimiter`n
-	Gui Font, S15, Verdana
-	Gui Font,, Lucida Sans Unicode
+	Gui Font, S15, Verdana ; default
+	Gui Font,, % gm_tx.GuiFont
 	Gui Margin, % gm_mh := 3, % gm_mv := 3
 
 	Gui Add, Tab2, xm ym -Wrap vgm_tab gmain_gui_tab_change
@@ -112,7 +112,7 @@ main_gui_build: ; Build the GUIs
 	Gui Add, Edit, r2 -wrap vgm_tdesc, Sample Description
 	Gui Add, GroupBox, vgm_breqbox, % gm_tx.requirements
 	Gui Font, S11
-	Gui Add, Listview, -HDR r5 Grid vgm_lvreqs, Title`nAuthor`nStatus ; not localized since they're hidden
+	Gui Add, Listview, -HDR r5 Grid vgm_lvreqs, Title`nAuthor`nStatus ; not localized since it's hidden
 	Gui Add, Checkbox, h%gm_lineh% vgm_breqign center, % gm_tx.ignore_reqs
 	Gui Add, Text, 0x10 h2 vgm_h1
 	Gui Font, S15 Bold
