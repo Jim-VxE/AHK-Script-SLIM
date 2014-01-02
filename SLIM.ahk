@@ -1,79 +1,105 @@
 ; Script Library Install Manager
 
 ; Script Directives and Initialization
-settimer cmd_the_end, -9000
+settimer cmd_the_end, -49000 ; testing !!!!!!!!!!
 
 	#NoEnv ; Assume variables are not environment variables
 	#SingleInstance Off ; Allow multiple concurrent instances
 	FileEncoding UTF-8 ; Assume text files are UTF-8 encoded
 	gm_buttoncount = 12
 	gm_baction_vis := 4
-	version = 0.00.01
-	slim_reg = SOFTWARE\AHK Scripts\VxE\SLIM
-	Global packages := []
-	Global slim_man := {"Name":"AHK-Script-Slim","Version":"0.0.0.0"}
+	version = 0.0.1
+	workdir := A_ScriptDir ; testing !!!!!!!!!!!!
+	source = github.com/Jim-VxE/AHK-Script-SLIM
+	source_raw = https://raw.%source%/master
+	slim_reg = HKLM\SOFTWARE\AHK Scripts\VxE\SLIM\
+	Global packages := {}
+	Global slim_pkg := {"Name":"AHK-Script-Slim","Version":"0.0.0"}
 
-;+>	If !InStr( FileExist( A_ScriptDir "\SLIM Data"), "D" )
-;+>		FileCreateDir %A_ScriptDir%\SLIM Data
+;+>	If !InStr( FileExist( A_AppDataCommon "\SLIM Data"), "D" )
+;+>		FileCreateDir %A_AppDataCommon%\SLIM Data
+
+; Load settings from the registry
+	gm_domain := "AutoHotkey" ; future use - segregate packages by domain
+
+	gm_win_0 := _RegRead( slim_reg "windowPos", "Center,Center,691,427,0" )
+	gm_langlist := Replace( _RegRead( slim_reg "languagePref", "EN-US" ), ";", "`n" )
 
 ; Load all stored manifests
-	SetWorkingDir %A_ScriptDir%\SLIM Data
+	SetWorkingDir %workdir% ;\SLIM Data
 	Loop *.slim, 0, 0
 		load_manifest( A_LoopFileName )
+	for k, v in packages
+		SortManifestInfo( v, gm_langlist )
+	gm_tx := slim_pkg.info[1].GuiText
 
-; Download script manifest
-	If ( slim_man.Version = "0.0.0.0" )
+; If this script's manifest isn't found, add commands to retrieve it
+	If !cmpver( slim_pkg.Version, "0.0.0" ) && false
 	{
-		0++
-		%0% = -get
-		0++
-		%0% = https://raw.github.com/Jim-VxE/AHK-Script-SLIM/master/slim.slim
-		0++
-		%0% = %A_ScriptDir%\SLIM Data\slim.slim
+		addcmd("-get")
+		addcmd( source_raw "/slim.slim" )
+		addcmd( "slim.slim" )
+	}
+	If cmpver( slim_pkg.Version, version ) < 0 && false
+	{
+		addcmd("-get")
+		addcmd( source_raw "/SLIM.ahk" )
+		addcmd( A_ScriptFullPath )
+		addcmd("-reload")
 	}
 
 ; Command line switches
-	commands := {"-quit":[0,"cmd_the_end"],"-get":[2,"cmd_download"]}
+	commands := {"-quit":[0,"cmd_the_end"],"-reload":[0,"cmd_reload"],"-get":[2,"cmd_download"]}
 
 	If ( argc := %FALSE% )
 		GoSub cmd_handler
 
-; Load the configuration files for SLIM
-	If ( slim_man.Version = "0.0.0.0" )
+	If !cmpver( slim_pkg.Version, "0.0.0" )
 	{
 		MsgBox, 16, SLIM - Fatal Error, SLIM's configuration file is missing or corrupt.
 		Exitapp
 	}
 
-; Build the gui menus and tabs
-	gm_domain := "AutoHotkey" ; future use - segregate packages by domain
-
-	gm_tab := "`n"
+	gm_tablist := "`n"
 	for k, v in packages
-		If !InStr( gm_tab, "`n" v.Category "`n" )
-			gm_tab .= v.Category "`n"
-	gm_tab := SubStr( gm_tab, 2, -1 )
-	Sort gm_tab
+	{
+		If ( v.Category = "" )
+			v.Category := "Uncategorized"
 
-; Build the GUIs
+		If !InStr( gm_tablist, "`n" v.Category "`t" )
+			gm_tablist .= v.Category "`t" ( gm_tx.HasKey(v.Category) ? gm_tx[v.Category] : v.Category ) "`n"
+	}
+	gm_tablist := SubStr( gm_tablist, 2, -1 )
+	Sort gm_tablist
 
+	Gosub main_gui_build
+
+settimer cmd_the_end, off ; testing !!!!!!!!!!!!
+Return
+
+main_gui_build: ; Build the GUIs
 	Gui 1:Default ; main gui
+	Gui +LastFoundExist
+	If WinExist()
+		Gui Destroy
+
 	Gui +LastFound +Resize +Disabled +OwnDialogs +Labelmain_gui_ +HWNDmain_gui_hwnd +Delimiter`n
 	Gui Font, S15, Verdana
 	Gui Font,, Lucida Sans Unicode
 	Gui Margin, % gm_mh := 3, % gm_mv := 3
 
-	Gui Add, Tab2, xm ym -Wrap vgm_tab, % gm_tab
+	Gui Add, Tab2, xm ym -Wrap vgm_tab gmain_gui_tab_change
+		, % RegexReplace( gm_tablist, "[^\n\t]*\t" )
 	Gui Tab
 	Gui Font, S11
-	Gui Add, Text, xm 0x200 vgm_tfilter, Filter:
+	Gui Add, Text, xm 0x200 vgm_tfilter, % gm_tx.filter
 	ControlGetPos,,, gs_tfilterw,, Static1
 	Gui Add, Edit, vgm_efilter
 	ControlGetPos,,,, gm_lineh, Edit1
 	GuiControl MoveDraw, gm_tfilter, H%gm_lineh%
-	Gui Add, Listview, xm r4 Hidden vgm_lvpkg, ID|Title|Author|Check
+	Gui Add, Listview, xm r4 Hidden vgm_lvpkg, ID`nChecked`nCategory`nTitle`nVersion`nAuthor`nStatus`nManifest Date
 	Gui Add, Listview, xm r5 AltSubmit Grid Checked +E0x2 vgm_lvpkgfilter hwndgm_lvpkgfilter_hwnd
-		, Title|Version|Author|Status|Checked|Manifest Date
+		, % Replace( gm_tx.pgk_lv_hdr, "|", "`n" ) "`nID"
 	Gui Add, Text, 0x11 w2 vgm_v1
 	Gui Font, Bold
 	Gui Add, Text, h%gm_lineh% Center 0x200 vgm_ttitle, Title
@@ -84,10 +110,10 @@ settimer cmd_the_end, -9000
 	Gui Font, Norm
 	Gui Add, Text, h%gm_lineh% Center 0x200 vgm_tversion, Version: 1.00
 	Gui Add, Edit, r2 -wrap vgm_tdesc, Sample Description
-	Gui Add, GroupBox, vgm_breqbox, Requirements
+	Gui Add, GroupBox, vgm_breqbox, % gm_tx.requirements
 	Gui Font, S11
-	Gui Add, Listview, -HDR r5 Grid vgm_lvreqs, Title|Author|Status ; not localized since they're hidden
-	Gui Add, Checkbox, h%gm_lineh% vgm_breqign center, Ignore Requirements
+	Gui Add, Listview, -HDR r5 Grid vgm_lvreqs, Title`nAuthor`nStatus ; not localized since they're hidden
+	Gui Add, Checkbox, h%gm_lineh% vgm_breqign center, % gm_tx.ignore_reqs
 	Gui Add, Text, 0x10 h2 vgm_h1
 	Gui Font, S15 Bold
 	Loop %gm_buttoncount%
@@ -101,7 +127,7 @@ settimer cmd_the_end, -9000
 	SendMessage, 0x130A, 0, &rect, SysTabControl321
 	gm_tabh := NumGet( rect, 12, "Int" ) - NumGet( rect, 4, "Int" )
 	ControlGetPos,,,, gm_elineh, Edit2
-	gm_elineh -= gm_eh
+	gm_elineh -= gm_lineh
 	ControlGetPos,,,, gm_lvrowh, SysListview322
 	ControlGetPos,,,, gm_lvhdrh, SysListview321
 	gm_lvrowh -= gm_lvhdrh
@@ -116,26 +142,17 @@ settimer cmd_the_end, -9000
 	Gui Show, HIDE, SLIM
 	Loop 3
 		Sleep % 2 - A_Index
-	RegRead, gm_win_0, HKLM, % slim_reg, windowPos
-	gm_win_0 := ErrorLevel ? "Center,Center,691,427,0" : gm_win_0
 	StringSplit, gm_win_, gm_win_0, `,
 	WinMove,,,,, gm_win_3, gm_win_4
-	Gui, Show, % !gm_win_5 ? "X" gm_win_1 " Y" gm_win_2 : "MAXIMIZE"
-
-	RegRead, lang_pref, HKLM, % slim_reg, languagePreference
-	for k, v in slim_man
-
-	Tooltip % 
-
-settimer cmd_the_end, off
-
+	Gui, Show, % gm_win_5 ? "MAXIMIZE" : "X" gm_win_1 " Y" gm_win_2
 	Gui -Disabled
-	s =
 Return
 
 main_gui_size:
 	Gui +LastFound
-	main_gui_size( gm_w := A_GuiWidth, -gm_sbh + gm_h := A_GuiHeight )
+	gm_w := A_GuiWidth
+	gm_h := A_GuiHeight
+	main_gui_size( gm_w, gm_h - gm_sbh )
 Return
 
 main_gui_size( W, H ) {
@@ -155,7 +172,7 @@ main_gui_size( W, H ) {
 	GuiControl MoveDraw, gm_tab, % "W" W - gm_mh - gm_mh " H" gm_tabh + 2
 	GuiControl MoveDraw, gm_tfilter, % "Y" yhi + 2
 	GuiControl MoveDraw, gm_efilter, % "X" gs_tfilterw + gm_mh + gm_mh " Y" yhi + 2 " W" xmid - 1 - gs_tfilterw - 3 * gm_mh
-	GuiControl MoveDraw, gm_lvpkgfilter, % "Y" yhi + 2 + gm_mh + gm_eh " W" xmid - 1 - gm_mh - gm_mh " H" ylow - yhi - 3 * gm_mh - gm_eh
+	GuiControl MoveDraw, gm_lvpkgfilter, % "Y" yhi + 2 + gm_mh + gm_lineh " W" xmid - 1 - gm_mh - gm_mh " H" ylow - yhi - 3 * gm_mh - gm_lineh
 
 	GuiControl MoveDraw, gm_ttitle, % "X" xmid + 1 + gm_mh " Y" yhi + 2 " W" W - 1 - xmid - 2 * gm_mh
 	GuiControl MoveDraw, gm_tauthor, % "X" xmid + 1 + gm_mh " Y" yhi + 2 + gm_mv + gm_lineh " W" W - 1 - xmid - 2 * gm_mh " H" gm_tauh
@@ -189,10 +206,25 @@ btn_pos( I, N, K, W, Mh, H, Dy ) {
 	Return "X" Mh + Round( bx ) " Y" by " W" Round( bx + bw ) - Round( bx ) - Mh 
 }
 
+main_gui_fill_pkg_lv:
+	Gui Listview, gm_lvpkg
+	LV_Delete()
+	for k, v in packages
+		LV_Add( "", k, 0, gm_tx.HasKey( v.Category ) ? gm_tx[v.Category] : v.Category, v.Title, v.Version, _ListAuthors( v ), 0 )
+	Gosub main_gui_tab_change
+;ID`nChecked`nCategory`nTitle`nVersion`nAuthor`nStatus`nManifest Date
+Return
+
+main_gui_tab_change:
+	GuiControlGet gm_tab
+	Gui Listview, gm_lvpkg
+	Gui +Disabled
+	tbl := ""
+	Loop % LV_GetCount()
+		
+Return
 
 cmd_handler:
-; Handle command line input
-
 	argv := []
 	Loop %argc%
 		argv.insert(%A_Index%)
@@ -209,8 +241,18 @@ cmd_handler:
 Return
 
 cmd_download:
-	URLDownloadToFile, % argv[argn+1], % argv[argn+2]
+	URLDownloadToFile, % argv[argn+1], % argv[argn+2] ".part"
+	If !ErrorLevel
+		FileMove, % argv[argn+2] ".part", % argv[argn+2], 1
+	Else
+	{
+		FileDelete % argv[argn+2] ".part"
+		Exitapp 1
+	}
 Return
+
+cmd_reload:
+	Reload
 
 main_gui_escape:
 main_gui_close:
@@ -218,7 +260,8 @@ main_gui_close:
 	WinGet, gm_win_5, MINMAX
 	If !gm_win_5
 		WinGetPos, gm_win_1, gm_win_2, gm_win_3, gm_win_4
-;+>	RegWrite, REG_SZ, HKLM, % slim_reg, windowPos, %gm_win_1%`,%gm_win_2%`,%gm_win_3%`,%gm_win_4%`,%gm_win_5%
+;	_RegWrite( slim_reg "windowPos", gm_win_1 "," gm_win_2 "," gm_win_3 "," gm_win_4 "," gm_win_5 )
+;	_RegWrite( slim_reg "languagePref", Replace( gm_langlist, "`n", ";" ) )
 
 cmd_the_end:
 	Exitapp
@@ -226,13 +269,12 @@ Return
 
 load_manifest( fpath ) {
 	FileRead s, %fpath%
-
-	If IsObject( s := json_toobj( s ) ) && v.HasKey( "MANIFEST" )
+	If IsObject( s := json_toobj( s ) ) && s.HasKey( "MANIFEST" )
 		for i, v in s.MANIFEST.PACKAGES
 		{
-			packages.Insert( v )
-			If ( slim_man.Name = v.Name ) && 0 < cmp_ver( slim_man.Version, v.Version )
-				slim_man := v
+			packages.Insert( v.SlimId ? v.SlimId : ( v.SlimId := UniqueIdentifier() ), v )
+			If ( slim_pkg.Name = v.Name ) && 0 < cmpver( slim_pkg.Version, v.Version )
+				slim_pkg := v
 		}
 }
 
