@@ -78,10 +78,7 @@ settimer cmd_the_end, off ; testing !!!!!!!!!!!!
 Return
 
 main_gui_build: ; Build the GUIs
-	Gui 1:Default ; main gui
-	Gui +LastFoundExist
-	If WinExist()
-		Gui Destroy
+	Gui 1:New
 
 	Gui +LastFound +Resize +Disabled +OwnDialogs +Labelmain_gui_ +HWNDmain_gui_hwnd +Delimiter`n
 	Gui Font, S15, Verdana ; default
@@ -97,7 +94,8 @@ main_gui_build: ; Build the GUIs
 	Gui Add, Edit, vgm_efilter
 	ControlGetPos,,,, gm_lineh, Edit1
 	GuiControl MoveDraw, gm_tfilter, H%gm_lineh%
-	Gui Add, Listview, xm r4 Hidden vgm_lvpkg, ID`nChecked`nCategory`nTitle`nVersion`nAuthor`nStatus`nManifest Date
+	Gui Add, Listview, xm r4 Hidden vgm_lvpkg, ID`nChecked`nCategory`nSort`nTitle`nVersion`nAuthor`nStatus`nManifest Date
+	LV_ModifyCol( 4, "integer" )
 	Gui Add, Listview, xm r5 AltSubmit Grid Checked +E0x2 vgm_lvpkgfilter hwndgm_lvpkgfilter_hwnd
 		, % Replace( gm_tx.pgk_lv_hdr, "|", "`n" ) "`nID"
 	Gui Add, Text, 0x11 w2 vgm_v1
@@ -210,7 +208,7 @@ main_gui_fill_pkg_lv:
 	Gui Listview, gm_lvpkg
 	LV_Delete()
 	for k, v in packages
-		LV_Add( "", k, 0, gm_tx.HasKey( v.Category ) ? gm_tx[v.Category] : v.Category, v.Title, v.Version, _ListAuthors( v ), 0 )
+		LV_Add( "", k, 0, v.Category, v.Title, v.Version, _ListAuthors( v ), 0 )
 	Gosub main_gui_tab_change
 ;ID`nChecked`nCategory`nTitle`nVersion`nAuthor`nStatus`nManifest Date
 Return
@@ -219,9 +217,9 @@ main_gui_tab_change:
 	GuiControlGet gm_tab
 	Gui Listview, gm_lvpkg
 	Gui +Disabled
-	tbl := ""
+	pkgs := ""
 	Loop % LV_GetCount()
-		
+		If _lvtx( A_Index, 3
 Return
 
 cmd_handler:
